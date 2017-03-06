@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+		<meta charset="utf-8">
+		<title>eigenads</title>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+		<!-- Latest compiled and minified CSS -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+
+		<style>
+			#map {
+				height: 100%;
+			}
+
+			html, body {
+				height: 100%;
+				margin: 0;
+				padding: 0;
+			}
+
+			#floating-panel {
+				position: absolute;
+				top: 44px;
+				left: 9px;
+				z-index: 5;
+				text-align: center;
+				font-family: 'Roboto', 'sans-serif';
+				line-height: 30px;
+			}
+			
+			#floating-logout {
+				position: absolute;
+				top: 80px;
+				left: 9px;
+				z-index: 5;
+				text-align: center;
+				font-family: 'Roboto', 'sans-serif';
+				line-height: 30px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="floating-panel">
+			<input onclick="toggleRegion();" style='font-size:13px;' class='btn btn-default' id="hideShowRegion" type=button value="Hide Region">
+		</div>
+		<div id="floating-logout">
+			<input onclick="logOut();" style='font-size:13px;' class='btn btn-default' id="logout-btn" type=button value="Log Out">
+		</div>
+		<div id="map"></div>
+		<script>
+			var polygonList = [];
+			var polylineList = [];
+			var circleList = [];
+			var map;
+			 var userSessionToken = getCookie("sessionToken");
+			if(!userSessionToken){
+				window.location = "index.html";
+			}
+
+			//Intialization of Google Maps.
+			function initMap() {
+				$.ajax({
+					type: 'post',
+					url: 'http://localhost:3000/getAllMapRegions',
+					data: JSON.stringify({userSessionToken:userSessionToken}),
+					dataType: 'json',
+					contentType: 'application/json',
+					success: function (regionList) {
+
+						map = new google.maps.Map(document.getElementById('map'), {
+							zoom: 10,
+							center: {lat: 0, lng: -180},
+							mapTypeId: 'terrain',
+							styles: [
+							  {elementType: 'geometry', stylers: [{color: '#242f3e'}]},
+							  {elementType: 'labels.text.stroke', stylers: [{color: '#242f3e'}]},
+							  {elementType: 'labels.text.fill', stylers: [{color: '#746855'}]},
+							  {
+								featureType: 'administrative.locality',
+								elementType: 'labels.text.fill',
+								stylers: [{color: '#d59563'}]
+							  },
+							  {
+								featureType: 'poi',
+								elementType: 'labels.text.fill',
+								stylers: [{color: '#d59563'}]
+							  },
+							  {
+								featureType: 'poi.park',
+								elementType: 'geometry',
+								stylers: [{color: '#263c3f'}]
+							  },
+							  {
+								featureType: 'poi.park',
+								elementType: 'labels.text.fill',
+								stylers: [{color: '#6b9a76'}]
+							  },
+							  {
+								featureType: 'road',
+								elementType: 'geometry',
+								stylers: [{color: '#38414e'}]
+							  },
+							  {
+								featureType: 'road',
+								elementType: 'geometry.stroke',
+								stylers: [{color: '#212a37'}]
+							  },
+							  {
+								featureType: 'road',
+								elementType: 'labels.text.fill',
+								stylers: [{color: '#9ca5b3'}]
+							  },
+							  {
+								featureType: 'road.highway',
+								elementType: 'geometry',
+								stylers: [{color: '#746855'}]
+							  },
+							  {
+								featureType: 'road.highway',
+								elementType: 'geometry.stroke',
+								stylers: [{color: '#1f2835'}]
+							  },
+							  {
+								featureType: 'road.highway',
+								elementType: 'labels.text.fill',
+								stylers: [{color: '#f3d19c'}]
+							  },
+							  {
+								featureType: 'transit',
+								elementType: 'geometry',
+								stylers: [{color: '#2f3948'}]
+							  },
+							  {
+								featureType: 'transit.station',
+								elementType: 'labels.text.fill',
+								stylers: [{color: '#d59563'}]
+							  },
+							  {
+								featureType: 'water',
+								elementType: 'geometry',
+								stylers: [{color: '#17263c'}]
+							  },
+							  {
+								featureType: 'water',
+								elementType: 'labels.text.fill',
+								stylers: [{color: '#515c6d'}]
+							  },
+							  {
+								featureType: 'water',
+								elementType: 'labels.text.stroke',
+								stylers: [{color: '#17263c'}]
+							  }
+							]
+						});
+						if (navigator.geolocation) {
+							navigator.geolocation.getCurrentPosition(setPosition);
+						} else {
+							console.log("Geolocation is not supported by this browser.");
+						}
+						function setPosition(position) {
+							map.setCenter(new google.maps.LatLng(position.coords.latitude, position.coords.longitude));
+						}
+
+						for (var regionIndex = 0; regionIndex < regionList.length; regionIndex++) {
+							var regionCoordinates = [];
+							for (var pointIndex = 0; pointIndex < regionList[regionIndex].length; pointIndex++) {
+								var geoPoint = new google.maps.LatLng(regionList[regionIndex][pointIndex].lat, regionList[regionIndex][pointIndex].lon ||  regionList[regionIndex][pointIndex].lng);
+								regionCoordinates.push(geoPoint);
+							}
+							polygonList.push(new google.maps.Polygon({
+								paths: regionCoordinates,
+								strokeColor: '#FF0000',
+								strokeOpacity: 0.5,
+								strokeWeight: 2,
+								fillColor: '#FF0000',
+								fillOpacity: 0.20,
+								map: map
+							}));
+							polylineList.push(new google.maps.Polyline({
+								path: regionCoordinates,
+								geodesic: true,
+								strokeColor: '#FF0000',
+								strokeOpacity: 1.0,
+								strokeWeight: 2,
+								map: map
+							}));
+
+							circleList.push(new google.maps.Circle({
+								strokeColor: '#FF0000',
+								strokeOpacity: 0.8,
+								strokeWeight: 2,
+								fillColor: '#FF0000',
+								fillOpacity: 0.35,
+								map: map,
+								center: regionCoordinates[0],
+								radius: 1000
+							}));
+							circleList.push(new google.maps.Circle({
+								strokeColor: '#FF0000',
+								strokeOpacity: 0.8,
+								strokeWeight: 2,
+								fillColor: '#FF0000',
+								fillOpacity: 0.35,
+								map: map,
+								center: regionCoordinates[regionCoordinates.length - 1],
+								radius: 1000
+							}));
+						}
+					}
+				});
+			}
+			
+			/**
+			* Function to get cookies.
+			* @param key
+			* @returns value
+			*/
+			function getCookie(cname) {
+				var name = cname + "=";
+				var decodedCookie = decodeURIComponent(document.cookie);
+				var ca = decodedCookie.split(';');
+				for(var i = 0; i <ca.length; i++) {
+					var c = ca[i];
+					while (c.charAt(0) == ' ') {
+						c = c.substring(1);
+					}
+					if (c.indexOf(name) == 0) {
+						return c.substring(name.length, c.length);
+					}
+				}
+				return "";
+			}
+
+			//Function to show and hide region.
+			function toggleRegion() {
+				if (document.getElementById("hideShowRegion").value == "Hide Region") {
+					hideRegion();
+					document.getElementById("hideShowRegion").value = "Show Region";
+				}
+
+				else if (document.getElementById("hideShowRegion").value == "Show Region") {
+					showRegion();
+					document.getElementById("hideShowRegion").value = "Hide Region";
+				}
+			}
+			
+			function showRegion() {
+				for (var circleIndex = 0; circleIndex < circleList.length; circleIndex++) {
+					circleList[circleIndex].setMap(map);
+				}
+				for (var polygonIndex = 0; polygonIndex < polygonList.length; polygonIndex++) {
+					polygonList[polygonIndex].setMap(map);
+				}
+				for (var polyLineIndex = 0; polyLineIndex < polylineList.length; polyLineIndex++) {
+					polylineList[polyLineIndex].setMap(map);
+				}
+			}
+
+			function hideRegion() {
+				for (var circleIndex = 0; circleIndex < circleList.length; circleIndex++) {
+					circleList[circleIndex].setMap(null);
+				}
+				for (var polygonIndex = 0; polygonIndex < polygonList.length; polygonIndex++) {
+					polygonList[polygonIndex].setMap(null);
+				}
+				for (var polyLineIndex = 0; polyLineIndex < polylineList.length; polyLineIndex++) {
+					polylineList[polyLineIndex].setMap(null);
+				}
+			}
+			
+			// Log out function.
+			function logOut(){
+			
+				$.ajax({
+					type: 'post',
+					url: 'http://localhost:3000/signOut',
+					data: JSON.stringify({token:userSessionToken }),
+					dataType: 'json',
+					contentType: 'application/json',
+					success: function (success) {
+						setCookie("sessionToken",null,1);
+						window.location = "index.html";
+					},
+					error: function(XMLHttpRequest, textStatus, errorThrown) {
+						setCookie("sessionToken",null,1);
+						window.location = "index.html";
+					}
+				});
+				
+			}
+			
+			// Set cookie function.
+			function setCookie(cname, cvalue, exdays) {
+				var d = new Date();
+				d.setTime(d.getTime() + (exdays*24*60*60*1000));
+				var expires = "expires="+ d.toUTCString();
+				document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+			}
+
+		</script>
+		<script async defer
+				src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBGGMtq6yz_PsqZiH506pjgbZu_3IWFDVs&callback=initMap">
+		</script>
+	</body>
+</html>

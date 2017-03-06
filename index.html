@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link rel="stylesheet" type="text/css" href="assets/css/bootstrap.css">
+
+		<!-- Website CSS style -->
+		<link rel="stylesheet" type="text/css" href="assets/css/main.css">
+
+		<!-- Website Font style -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css">
+
+		<!-- Google Fonts -->
+		<link href='https://fonts.googleapis.com/css?family=Passion+One' rel='stylesheet' type='text/css'>
+		<link href='https://fonts.googleapis.com/css?family=Oxygen' rel='stylesheet' type='text/css'>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+		<title>eigenads</title>
+	</head>
+	<body>
+		<div class="container">
+			<div class="row main">
+				<div class="panel-heading">
+					<div class="panel-title text-center">
+						<h1 class="title">eigenads</h1>
+						<hr />
+					</div>
+				</div>
+				<div class="main-login main-center">
+					<form class="form-horizontal" method="post" action="#">
+						<div class="form-group">
+							<label for="email" class="cols-sm-2 control-label">Your Email</label>
+							<div class="cols-sm-10">
+								<div class="input-group">
+									<span class="input-group-addon"><i class="fa fa-envelope fa" aria-hidden="true"></i></span>
+									<input type="text" class="form-control" name="email" id="email"  placeholder="Enter your Email"/>
+								</div>
+							</div>
+						</div>
+
+
+						<div class="form-group">
+							<label for="password" class="cols-sm-2 control-label">Password</label>
+							<div class="cols-sm-10">
+								<div class="input-group">
+									<span class="input-group-addon"><i class="fa fa-lock fa-lg" aria-hidden="true"></i></span>
+									<input type="password" class="form-control" name="password" id="password"  placeholder="Enter your Password"/>
+								</div>
+							</div>
+						</div>
+
+						<div class="form-group ">
+							<button type="button" class="btn btn-primary btn-lg btn-block login-button" onclick="doLogin();">Login</button>
+						</div>
+						<div class="login-register">
+							<a href="signup.html">Register</a>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<script type="text/javascript" src="assets/js/bootstrap.js"></script>
+		<script>
+			/** Log in function. */
+			function doLogin(){
+				if(document.getElementById("email").value != '' && document.getElementById("password").value != '' ) {
+					$.ajax({
+						type: 'post',
+						url: 'http://localhost:3000/signIn',
+						data: JSON.stringify({email:document.getElementById("email").value , password:document.getElementById("password").value }),
+						dataType: 'json',
+						contentType: 'application/json',
+						success: function (user) {
+							if(user) {
+								var sessionToken = user.stsTokenManager.accessToken;
+								setCookie("sessionToken",sessionToken,10);
+								window.location = "map.html";
+							}else{
+								alert("Invalid username or password !!");
+							}
+						},
+						error: function(XMLHttpRequest, textStatus, errorThrown) {
+							alert("Invalid username or password !!");
+						}
+					});
+				}else{
+					alert("Please enter email and password");
+				}
+			};
+			function setCookie(cname, cvalue, exdays) {
+				var d = new Date();
+				d.setTime(d.getTime() + (exdays*24*60*60*1000));
+				var expires = "expires="+ d.toUTCString();
+				document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+			}
+		</script>
+
+	</body>
+</html>
